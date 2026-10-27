@@ -728,6 +728,7 @@ config_option_with_style_edition_default!(
     MatchBlockTrailingComma, bool, _ => false;
     BlankLinesUpperBound, usize, _ => 1;
     BlankLinesLowerBound, usize, _ => 0;
+    BlankLinesBetweenFields, ElementSpacing, _ => ElementSpacing::Preserve;
     BlankLinesBetweenMatchArms, ElementSpacing, _ => ElementSpacing::Preserve;
     BlankLinesBetweenVariants, ElementSpacing, _ => ElementSpacing::Preserve;
     EditionConfig, Edition, _ => Edition::Edition2015;

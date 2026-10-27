@@ -7,11 +7,13 @@ use rustc_ast::ast;
 use rustc_span::{BytePos, Span};
 
 use crate::comment::combine_strs_with_missing_comments;
+use crate::config::ElementSpacing;
 use crate::config::lists::*;
 use crate::expr::rewrite_field;
 use crate::items::{rewrite_struct_field, rewrite_struct_field_prefix};
 use crate::lists::{
-    ListFormatting, ListItem, Separator, definitive_tactic, itemize_list, write_list,
+    ListFormatting, ListItem, Separator, apply_item_spacing, definitive_tactic, itemize_list,
+    write_list,
 };
 use crate::rewrite::{Rewrite, RewriteContext, RewriteResult};
 use crate::shape::{Indent, Shape};
@@ -23,6 +25,7 @@ use crate::utils::{
 
 pub(crate) trait AlignedItem {
     fn skip(&self) -> bool;
+    fn has_attrs(&self) -> bool;
     fn get_span(&self) -> Span;
     fn rewrite_prefix(&self, context: &RewriteContext<'_>, shape: Shape) -> RewriteResult;
     fn rewrite_aligned_item(
@@ -36,6 +39,10 @@ pub(crate) trait AlignedItem {
 impl AlignedItem for ast::FieldDef {
     fn skip(&self) -> bool {
         contains_skip(&self.attrs)
+    }
+
+    fn has_attrs(&self) -> bool {
+        !self.attrs.is_empty()
     }
 
     fn get_span(&self) -> Span {
@@ -76,6 +83,10 @@ impl AlignedItem for ast::ExprField {
         contains_skip(&self.attrs)
     }
 
+    fn has_attrs(&self) -> bool {
+        !self.attrs.is_empty()
+    }
+
     fn get_span(&self) -> Span {
         self.span()
     }
@@ -108,15 +119,20 @@ impl AlignedItem for ast::ExprField {
     }
 }
 
+/// Rewrites `fields`, vertically aligning them when `struct_field_align_threshold` is set.
+///
+/// `spacing` controls the blank lines between fields. When fields are aligned, blank lines
+/// delimit the alignment groups, so `spacing` also determines how the fields are grouped.
 pub(crate) fn rewrite_with_alignment<T: AlignedItem>(
     fields: &[T],
     context: &RewriteContext<'_>,
     shape: Shape,
     span: Span,
     one_line_width: usize,
+    spacing: ElementSpacing,
 ) -> Option<String> {
     let (spaces, group_index) = if context.config.struct_field_align_threshold() > 0 {
-        group_aligned_items(context, fields)
+        group_aligned_items(context, fields, shape, spacing)
     } else {
         ("", fields.len() - 1)
     };
@@ -170,12 +186,14 @@ pub(crate) fn rewrite_with_alignment<T: AlignedItem>(
         shape.indent,
         one_line_width,
         force_separator,
+        spacing,
     )?;
     if rest.is_empty() {
         Some(result + spaces)
     } else {
         let rest_span = mk_sp(init_last_pos, span.hi());
-        let rest_str = rewrite_with_alignment(rest, context, shape, rest_span, one_line_width)?;
+        let rest_str =
+            rewrite_with_alignment(rest, context, shape, rest_span, one_line_width, spacing)?;
         Some(format!(
             "{}{}\n{}{}",
             result,
@@ -211,6 +229,7 @@ fn rewrite_aligned_items_inner<T: AlignedItem>(
     offset: Indent,
     one_line_width: usize,
     force_trailing_separator: bool,
+    spacing: ElementSpacing,
 ) -> Option<String> {
     // 1 = ","
     let item_shape = Shape::indented(offset, context.config).sub_width_opt(1)?;
@@ -234,6 +253,7 @@ fn rewrite_aligned_items_inner<T: AlignedItem>(
         false,
     )
     .collect::<Vec<_>>();
+    apply_item_spacing(&mut items, spacing, |i| fields[i].has_attrs());
 
     let tactic = definitive_tactic(
         &items,
@@ -271,11 +291,18 @@ fn rewrite_aligned_items_inner<T: AlignedItem>(
 
 /// Returns the index in `fields` up to which a field belongs to the current group.
 /// The returned string is the group separator to use when rewriting the fields.
-/// Groups are defined by blank lines.
+/// Groups are defined by the blank lines between fields, as determined by `spacing`.
 fn group_aligned_items<T: AlignedItem>(
     context: &RewriteContext<'_>,
     fields: &[T],
+    shape: Shape,
+    spacing: ElementSpacing,
 ) -> (&'static str, usize) {
+    let spans_multiple_lines = |field: &T| {
+        field
+            .rewrite_aligned_item(context, shape, 0)
+            .map_or(false, |s| s.contains('\n'))
+    };
     let mut index = 0;
     for i in 0..fields.len() - 1 {
         if fields[i].skip() {
@@ -288,11 +315,28 @@ fn group_aligned_items<T: AlignedItem>(
             .skip(1)
             .collect::<Vec<_>>()
             .join("\n");
-        let has_blank_line = snippet
-            .lines()
-            .dropping_back(1)
-            .any(|l| l.trim().is_empty());
-        if has_blank_line {
+        let mut own_lines = snippet.lines().dropping_back(1);
+        let separated = match spacing {
+            ElementSpacing::Preserve => own_lines.any(|l| l.trim().is_empty()),
+            ElementSpacing::Never => false,
+            ElementSpacing::Always => true,
+            ElementSpacing::AroundAnnotated => {
+                own_lines.any(|l| {
+                    let l = l.trim();
+                    l.is_empty() || l.starts_with("//") || l.starts_with("/*")
+                }) || fields[i].has_attrs()
+                    || fields[i + 1].has_attrs()
+            }
+            ElementSpacing::AroundMultiline => {
+                // A comment on its own line makes the next field span multiple lines.
+                own_lines.any(|l| {
+                    let l = l.trim();
+                    l.is_empty() || l.starts_with("//") || l.starts_with("/*")
+                }) || spans_multiple_lines(&fields[i])
+                    || spans_multiple_lines(&fields[i + 1])
+            }
+        };
+        if separated {
             return ("\n", index);
         }
         index += 1;

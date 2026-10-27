@@ -1531,6 +1531,7 @@ pub(crate) fn format_struct_struct(
         Shape::indented(offset.block_indent(context.config), context.config).sub_width_opt(1)?,
         mk_sp(body_lo, span.hi()),
         one_line_budget,
+        context.config.blank_lines_between_fields(),
     )?;
 
     if !items_str.contains('\n')

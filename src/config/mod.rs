@@ -155,6 +155,8 @@ create_config! {
         "Maximum number of blank lines which can be put between items";
     blank_lines_lower_bound: BlankLinesLowerBound, false,
         "Minimum number of blank lines which must be put between items";
+    blank_lines_between_fields: BlankLinesBetweenFields, false,
+        "Controls blank lines between the fields of struct, union and enum variant definitions";
     blank_lines_between_match_arms: BlankLinesBetweenMatchArms, false,
         "Controls blank lines between match arms";
     blank_lines_between_variants: BlankLinesBetweenVariants, false,
@@ -831,6 +833,7 @@ trailing_comma = "Vertical"
 match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
+blank_lines_between_fields = "Preserve"
 blank_lines_between_match_arms = "Preserve"
 blank_lines_between_variants = "Preserve"
 edition = "2015"
@@ -926,6 +929,7 @@ trailing_comma = "Vertical"
 match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
+blank_lines_between_fields = "Preserve"
 blank_lines_between_match_arms = "Preserve"
 blank_lines_between_variants = "Preserve"
 edition = "2015"

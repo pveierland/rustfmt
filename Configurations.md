@@ -81,6 +81,100 @@ fn main() {
 }
 ```
 
+## `blank_lines_between_fields`
+
+Controls blank lines between the named fields of struct, union and enum variant definitions. A
+field spans multiple lines if it, together with its attributes, doc comments and any comments on
+their own lines above it, takes up more than one line. Struct expressions are not affected.
+
+When [`struct_field_align_threshold`](#struct_field_align_threshold) is set, blank lines delimit
+the groups of aligned fields, so this option also determines how fields are grouped.
+
+- **Default value**: `"Preserve"`
+- **Possible values**: `"Preserve"`, `"Never"`, `"Always"`, `"AroundAnnotated"`, `"AroundMultiline"`
+- **Stable**: No
+
+#### `"Preserve"` (default):
+
+Blank lines between fields are kept as they are written.
+
+```rust
+struct Config {
+    name: String,
+
+    /// The number of retries.
+    retries: u32,
+    verbose: bool,
+}
+```
+
+#### `"Never"`:
+
+```rust
+struct Config {
+    name: String,
+    /// The number of retries.
+    retries: u32,
+    verbose: bool,
+}
+```
+
+#### `"Always"`:
+
+```rust
+struct Config {
+    name: String,
+
+    /// The number of retries.
+    retries: u32,
+
+    verbose: bool,
+}
+```
+
+#### `"AroundAnnotated"`:
+
+A blank line is put before and after every field which has attributes, doc comments or a comment on
+its own line above it. Blank lines between other fields are kept as they are written.
+
+```rust
+struct Config {
+    name: String,
+    path: PathBuf,
+
+    /// The number of retries.
+    retries: u32,
+
+    #[serde(default)]
+    verbose: bool,
+
+    quiet: bool,
+}
+```
+
+#### `"AroundMultiline"`:
+
+A blank line is put before and after every field which spans multiple lines. Blank lines between
+single-line fields are kept as they are written.
+
+```rust
+struct Config {
+    name: String,
+    path: PathBuf,
+
+    /// The number of retries.
+    retries: u32,
+
+    #[serde(default)]
+    verbose: bool,
+
+    quiet: bool,
+}
+```
+
+See also: [`blank_lines_between_variants`](#blank_lines_between_variants),
+[`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
+
 ## `blank_lines_between_match_arms`
 
 Controls blank lines between match arms. An arm spans multiple lines if it, together with its
@@ -182,7 +276,8 @@ fn main() {
 }
 ```
 
-See also: [`blank_lines_between_variants`](#blank_lines_between_variants).
+See also: [`blank_lines_between_fields`](#blank_lines_between_fields),
+[`blank_lines_between_variants`](#blank_lines_between_variants).
 
 ## `blank_lines_between_variants`
 
@@ -275,7 +370,8 @@ enum Shape {
 }
 ```
 
-See also: [`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
+See also: [`blank_lines_between_fields`](#blank_lines_between_fields),
+[`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
 
 ## `blank_lines_lower_bound`
 

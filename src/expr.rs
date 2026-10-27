@@ -13,7 +13,9 @@ use crate::comment::{
     CharClasses, FindUncommented, combine_strs_with_missing_comments, contains_comment,
     recover_comment_removed, rewrite_comment, rewrite_missing_comment,
 };
-use crate::config::{Config, ControlBraceStyle, HexLiteralCase, IndentStyle, StyleEdition};
+use crate::config::{
+    Config, ControlBraceStyle, ElementSpacing, HexLiteralCase, IndentStyle, StyleEdition,
+};
 use crate::config::{FloatLiteralTrailingZero, lists::*};
 use crate::lists::{
     ListFormatting, Separator, definitive_tactic, itemize_list, shape_for_tactic,
@@ -1851,6 +1853,7 @@ fn rewrite_struct_lit<'a>(
             v_shape,
             mk_sp(body_lo, span.hi()),
             one_line_width,
+            ElementSpacing::Preserve,
         )
         .unknown_error()?
     } else {
