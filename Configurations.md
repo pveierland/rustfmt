@@ -172,8 +172,8 @@ struct Config {
 }
 ```
 
-See also: [`blank_lines_between_variants`](#blank_lines_between_variants),
-[`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
+See also: [`blank_lines_between_match_arms`](#blank_lines_between_match_arms),
+[`blank_lines_between_variants`](#blank_lines_between_variants).
 
 ## `blank_lines_between_match_arms`
 
@@ -277,6 +277,114 @@ fn main() {
 ```
 
 See also: [`blank_lines_between_fields`](#blank_lines_between_fields),
+[`blank_lines_between_statements`](#blank_lines_between_statements),
+[`blank_lines_between_variants`](#blank_lines_between_variants).
+
+## `blank_lines_between_statements`
+
+Controls blank lines between the statements of a block. A statement spans multiple lines if its
+formatted form, including its attributes, takes up more than one line, or if a comment on its own
+line directly precedes it, since such a comment belongs to the statement. Blank lines are put
+above the comments which belong to a statement.
+
+Blank lines are only changed between statements, never after the opening or before the closing
+brace of a block, and are not added when [`blank_lines_upper_bound`](#blank_lines_upper_bound) is
+`0`.
+
+- **Default value**: `"Preserve"`
+- **Possible values**: `"Preserve"`, `"Never"`, `"Always"`, `"AroundAnnotated"`, `"AroundMultiline"`
+- **Stable**: No
+
+#### `"Preserve"` (default):
+
+Blank lines between statements are kept as they are written, up to
+[`blank_lines_upper_bound`](#blank_lines_upper_bound).
+
+```rust
+fn main() {
+    let path = config_path();
+    let config = fs::read_to_string(&path)
+        .map(|text| parse(&text))
+        .unwrap_or_default();
+
+    // Retry once, as the first connection attempt may time out.
+    let connection = connect(&config).or_else(|_| connect(&config));
+    run(connection);
+}
+```
+
+#### `"Never"`:
+
+```rust
+fn main() {
+    let path = config_path();
+    let config = fs::read_to_string(&path)
+        .map(|text| parse(&text))
+        .unwrap_or_default();
+    // Retry once, as the first connection attempt may time out.
+    let connection = connect(&config).or_else(|_| connect(&config));
+    run(connection);
+}
+```
+
+#### `"Always"`:
+
+```rust
+fn main() {
+    let path = config_path();
+
+    let config = fs::read_to_string(&path)
+        .map(|text| parse(&text))
+        .unwrap_or_default();
+
+    // Retry once, as the first connection attempt may time out.
+    let connection = connect(&config).or_else(|_| connect(&config));
+
+    run(connection);
+}
+```
+
+#### `"AroundAnnotated"`:
+
+A blank line is put before and after every statement which has attributes, doc comments or a
+comment on its own line above it. Blank lines between other statements are kept as they are written.
+
+```rust
+fn main() {
+    let path = config_path();
+    let config = fs::read_to_string(&path)
+        .map(|text| parse(&text))
+        .unwrap_or_default();
+
+    // Retry once, as the first connection attempt may time out.
+    let connection = connect(&config).or_else(|_| connect(&config));
+
+    run(connection);
+}
+```
+
+#### `"AroundMultiline"`:
+
+A blank line is put before and after every statement which spans multiple lines. Blank lines
+between single-line statements are kept as they are written.
+
+```rust
+fn main() {
+    let path = config_path();
+
+    let config = fs::read_to_string(&path)
+        .map(|text| parse(&text))
+        .unwrap_or_default();
+
+    // Retry once, as the first connection attempt may time out.
+    let connection = connect(&config).or_else(|_| connect(&config));
+
+    run(connection);
+}
+```
+
+See also: [`blank_lines_between_fields`](#blank_lines_between_fields),
+[`blank_lines_between_match_arms`](#blank_lines_between_match_arms),
 [`blank_lines_between_variants`](#blank_lines_between_variants).
 
 ## `blank_lines_between_variants`
@@ -371,7 +479,8 @@ enum Shape {
 ```
 
 See also: [`blank_lines_between_fields`](#blank_lines_between_fields),
-[`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
+[`blank_lines_between_match_arms`](#blank_lines_between_match_arms),
+[`blank_lines_between_statements`](#blank_lines_between_statements).
 
 ## `blank_lines_lower_bound`
 

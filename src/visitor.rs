@@ -8,9 +8,10 @@ use tracing::debug;
 
 use crate::attr::*;
 use crate::comment::{
-    CodeCharKind, CommentCodeSlices, contains_comment, recover_comment_removed, rewrite_comment,
+    CharClasses, CodeCharKind, CommentCodeSlices, FullCodeCharKind, contains_comment,
+    recover_comment_removed, rewrite_comment,
 };
-use crate::config::{BraceStyle, Config, MacroSelector, StyleEdition};
+use crate::config::{BraceStyle, Config, ElementSpacing, MacroSelector, StyleEdition};
 use crate::coverage::transform_missing_snippet;
 use crate::items::{
     FnBraceStyle, FnSig, ItemVisitorKind, StaticParts, StructParts, format_impl, format_trait,
@@ -929,7 +930,14 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
         self.visit_items_with_reordering(&ptr_vec_to_ref_vec(items));
     }
 
-    fn walk_stmts(&mut self, stmts: &[Stmt<'_>], include_current_empty_semi: bool) {
+    /// Formats `stmts`. `prev_stmt` is the layout of the statement preceding `stmts` in the
+    /// block, and is `None` if there is no such statement.
+    fn walk_stmts(
+        &mut self,
+        stmts: &[Stmt<'_>],
+        include_current_empty_semi: bool,
+        prev_stmt: Option<StmtLayout>,
+    ) {
         if stmts.is_empty() {
             return;
         }
@@ -941,8 +949,17 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
             .filter_map(|stmt| stmt.to_item())
             .collect();
 
+        let start = self.buffer.len();
+        let skipped_ranges = self.skipped_range.borrow().len();
+
         if items.is_empty() {
             self.visit_stmt(&stmts[0], include_current_empty_semi);
+            let layout = if stmts[0].is_empty() {
+                prev_stmt
+            } else {
+                let has_attrs = !get_attrs_from_stmt(stmts[0].as_ast_node()).is_empty();
+                self.separate_stmt(stmts[0].span(), start, skipped_ranges, has_attrs, prev_stmt)
+            };
 
             // FIXME(calebcartwright 2021-01-03) - This exists strictly to maintain legacy
             // formatting where rustfmt would preserve redundant semicolons on Items in a
@@ -965,15 +982,94 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
                 false
             };
 
-            self.walk_stmts(&stmts[1..], include_next_empty);
+            self.walk_stmts(&stmts[1..], include_next_empty, layout);
         } else {
             self.visit_items_with_reordering(&items);
-            self.walk_stmts(&stmts[items.len()..], false);
+            let span = mk_sp(items[0].span.lo(), items[items.len() - 1].span.hi());
+            let has_attrs = items.iter().any(|item| !item.attrs.is_empty());
+            let layout = self.separate_stmt(span, start, skipped_ranges, has_attrs, prev_stmt);
+            self.walk_stmts(&stmts[items.len()..], false, layout);
         }
     }
 
     fn walk_block_stmts(&mut self, b: &ast::Block) {
-        self.walk_stmts(&Stmt::from_ast_nodes(b.stmts.iter()), false)
+        self.walk_stmts(&Stmt::from_ast_nodes(b.stmts.iter()), false, None)
+    }
+
+    /// Adjusts the blank lines between the statement which was just formatted and the previous
+    /// statement, as required by `blank_lines_between_statements`. The statement was written to
+    /// the buffer from `start` onwards, together with the whitespace and comments preceding it,
+    /// and `skipped_ranges` is the number of skipped ranges recorded before it.
+    ///
+    /// A comment on its own line directly preceding the statement belongs to the statement.
+    /// `has_attrs` tells whether the statement has attributes, including doc comments.
+    ///
+    /// Returns the layout of the statement, or `None` if nothing was written.
+    fn separate_stmt(
+        &mut self,
+        span: Span,
+        start: usize,
+        skipped_ranges: usize,
+        has_attrs: bool,
+        prev_stmt: Option<StmtLayout>,
+    ) -> Option<StmtLayout> {
+        let (line_end, stmt_start) = split_stmt_gap(&self.buffer[start..])?;
+        // The lines between the previous line and the statement, which are either blank or hold
+        // comments, followed by the indentation of the statement.
+        let gap = line_end.map_or("", |line_end| {
+            &self.buffer[start + line_end..start + stmt_start]
+        });
+        let has_attached_comment = gap
+            .split('\n')
+            .rev()
+            .nth(1)
+            .map_or(false, |l| !l.trim().is_empty());
+        let has_blank_line = gap.split('\n').rev().skip(1).any(|l| l.trim().is_empty());
+        let layout = StmtLayout {
+            is_multiline: has_attached_comment || self.buffer[start + stmt_start..].contains('\n'),
+            is_annotated: has_attached_comment || has_attrs,
+        };
+        let (Some(prev), Some(line_end)) = (prev_stmt, line_end) else {
+            return Some(layout);
+        };
+
+        let separate = match self.config.blank_lines_between_statements() {
+            ElementSpacing::Preserve => return Some(layout),
+            ElementSpacing::Never => false,
+            ElementSpacing::Always => true,
+            ElementSpacing::AroundAnnotated => {
+                has_blank_line || layout.is_annotated || prev.is_annotated
+            }
+            ElementSpacing::AroundMultiline => {
+                has_blank_line || layout.is_multiline || prev.is_multiline
+            }
+        };
+        let new_gap = if separate && !has_blank_line && self.config.blank_lines_upper_bound() > 0 {
+            format!("\n{gap}")
+        } else if !separate && has_blank_line {
+            let last = gap.split('\n').count() - 1;
+            gap.split('\n')
+                .enumerate()
+                .filter(|&(i, l)| i == last || !l.trim().is_empty())
+                .map(|(_, l)| l)
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            return Some(layout);
+        };
+        if out_of_file_lines_range!(self, span) {
+            return Some(layout);
+        }
+
+        let added_lines = count_newlines(&new_gap) as isize - count_newlines(gap) as isize;
+        self.buffer
+            .replace_range(start + line_end..start + stmt_start, &new_gap);
+        self.line_number = self.line_number.saturating_add_signed(added_lines);
+        for range in &mut self.skipped_range.borrow_mut()[skipped_ranges..] {
+            range.0 = range.0.saturating_add_signed(added_lines);
+            range.1 = range.1.saturating_add_signed(added_lines);
+        }
+        Some(layout)
     }
 
     fn format_mod(
@@ -1122,4 +1218,39 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
             }
         }
     }
+}
+
+/// The layout of a formatted statement, which decides the blank lines around it.
+#[derive(Clone, Copy)]
+struct StmtLayout {
+    /// The statement, together with a comment on its own line directly preceding it, spans
+    /// multiple lines.
+    is_multiline: bool,
+    /// The statement has attributes, doc comments or a comment on its own line directly
+    /// preceding it.
+    is_annotated: bool,
+}
+
+/// Splits `s`, which holds a formatted statement preceded by whitespace and comments, at the
+/// start of the statement.
+///
+/// Returns the position just after the line break which ends the previous line, if there is one
+/// before the statement, and the position where the statement starts. Returns `None` if `s`
+/// does not contain a statement.
+fn split_stmt_gap(s: &str) -> Option<(Option<usize>, usize)> {
+    let mut line_end = None;
+    for (kind, (i, c)) in CharClasses::new(s.char_indices()) {
+        if c == '\n'
+            && line_end.is_none()
+            && matches!(
+                kind,
+                FullCodeCharKind::Normal | FullCodeCharKind::EndComment
+            )
+        {
+            line_end = Some(i + 1);
+        } else if !kind.is_comment() && !c.is_whitespace() {
+            return Some((line_end, i));
+        }
+    }
+    None
 }

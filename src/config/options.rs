@@ -536,8 +536,8 @@ pub enum MatchArmLeadingPipe {
     Preserve,
 }
 
-/// Controls blank lines between the elements of a vertically formatted list, such as match
-/// arms, enum variants or struct fields.
+/// Controls blank lines between consecutive elements, such as the statements of a block, the
+/// fields of a struct, the variants of an enum or the arms of a match.
 #[config_type]
 pub enum ElementSpacing {
     /// Keep blank lines between elements as they are written in the source.
@@ -730,6 +730,7 @@ config_option_with_style_edition_default!(
     BlankLinesLowerBound, usize, _ => 0;
     BlankLinesBetweenFields, ElementSpacing, _ => ElementSpacing::Preserve;
     BlankLinesBetweenMatchArms, ElementSpacing, _ => ElementSpacing::Preserve;
+    BlankLinesBetweenStatements, ElementSpacing, _ => ElementSpacing::Preserve;
     BlankLinesBetweenVariants, ElementSpacing, _ => ElementSpacing::Preserve;
     EditionConfig, Edition, _ => Edition::Edition2015;
     StyleEditionConfig, StyleEdition,

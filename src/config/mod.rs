@@ -159,6 +159,8 @@ create_config! {
         "Controls blank lines between the fields of struct, union and enum variant definitions";
     blank_lines_between_match_arms: BlankLinesBetweenMatchArms, false,
         "Controls blank lines between match arms";
+    blank_lines_between_statements: BlankLinesBetweenStatements, false,
+        "Controls blank lines between statements";
     blank_lines_between_variants: BlankLinesBetweenVariants, false,
         "Controls blank lines between enum variants";
     edition: EditionConfig, true, "The edition of the parser (RFC 2052)";
@@ -835,6 +837,7 @@ blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
 blank_lines_between_fields = "Preserve"
 blank_lines_between_match_arms = "Preserve"
+blank_lines_between_statements = "Preserve"
 blank_lines_between_variants = "Preserve"
 edition = "2015"
 style_edition = "2015"
@@ -931,6 +934,7 @@ blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
 blank_lines_between_fields = "Preserve"
 blank_lines_between_match_arms = "Preserve"
+blank_lines_between_statements = "Preserve"
 blank_lines_between_variants = "Preserve"
 edition = "2015"
 style_edition = "2024"
