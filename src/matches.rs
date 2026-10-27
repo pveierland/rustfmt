@@ -13,7 +13,7 @@ use crate::expr::{
     ExprType, RhsTactics, format_expr, is_empty_block, is_simple_block, is_unsafe_block,
     prefer_next_line, rewrite_cond,
 };
-use crate::lists::{ListFormatting, itemize_list, write_list};
+use crate::lists::{ListFormatting, apply_item_spacing, itemize_list, write_list};
 use crate::rewrite::{Rewrite, RewriteContext, RewriteError, RewriteErrorExt, RewriteResult};
 use crate::shape::Shape;
 use crate::source_map::SpanUtils;
@@ -236,7 +236,12 @@ fn rewrite_match_arms(
         span.hi(),
         false,
     );
-    let arms_vec: Vec<_> = items.collect();
+    let mut arms_vec: Vec<_> = items.collect();
+    apply_item_spacing(
+        &mut arms_vec,
+        context.config.blank_lines_between_match_arms(),
+        |i| !arms[i].attrs.is_empty(),
+    );
     // We will add/remove commas inside `arm.rewrite()`, and hence no separator here.
     let fmt = ListFormatting::new(arm_shape, context.config)
         .separator("")

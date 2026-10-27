@@ -536,6 +536,26 @@ pub enum MatchArmLeadingPipe {
     Preserve,
 }
 
+/// Controls blank lines between the elements of a vertically formatted list, such as match
+/// arms, enum variants or struct fields.
+#[config_type]
+pub enum ElementSpacing {
+    /// Keep blank lines between elements as they are written in the source.
+    Preserve,
+    /// Remove all blank lines between elements.
+    Never,
+    /// Put a blank line between every pair of elements.
+    Always,
+    /// Put a blank line before and after every element which is annotated by attributes, doc
+    /// comments or comments on their own lines. Blank lines between other elements are kept as
+    /// they are written in the source.
+    AroundAnnotated,
+    /// Put a blank line before and after every element which spans multiple lines (including
+    /// its attributes, doc comments and comments on their own lines). Blank lines between other
+    /// elements are kept as they are written in the source.
+    AroundMultiline,
+}
+
 /// Defines the default values for each config according to the edition of the
 /// [Style Guide] as per [RFC 3338]. Rustfmt output may differ between Style editions.
 ///
@@ -708,6 +728,7 @@ config_option_with_style_edition_default!(
     MatchBlockTrailingComma, bool, _ => false;
     BlankLinesUpperBound, usize, _ => 1;
     BlankLinesLowerBound, usize, _ => 0;
+    BlankLinesBetweenMatchArms, ElementSpacing, _ => ElementSpacing::Preserve;
     EditionConfig, Edition, _ => Edition::Edition2015;
     StyleEditionConfig, StyleEdition,
         Edition2024 => StyleEdition::Edition2024, _ => StyleEdition::Edition2015;

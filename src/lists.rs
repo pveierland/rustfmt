@@ -7,7 +7,7 @@ use rustc_span::{BytePos, Span};
 
 use crate::comment::{FindUncommented, find_comment_end, rewrite_comment};
 use crate::config::lists::*;
-use crate::config::{Config, IndentStyle};
+use crate::config::{Config, ElementSpacing, IndentStyle};
 use crate::rewrite::{ExceedsMaxWidthError, RewriteContext, RewriteError, RewriteResult};
 use crate::shape::{Indent, Shape};
 use crate::utils::{
@@ -167,6 +167,17 @@ impl ListItem {
                 .map_or(false, |s| s.contains('\n'))
     }
 
+    /// Returns `true` if the item, together with its attributes and any comments placed on
+    /// their own lines, spans more than a single line.
+    fn spans_multiple_lines(&self) -> bool {
+        self.is_multiline() || self.has_own_line_pre_comment()
+    }
+
+    /// Returns `true` if a comment is placed on its own line before the item.
+    fn has_own_line_pre_comment(&self) -> bool {
+        self.pre_comment.is_some() && self.pre_comment_style == ListItemCommentStyle::DifferentLine
+    }
+
     pub(crate) fn has_single_line_comment(&self) -> bool {
         self.pre_comment
             .as_ref()
@@ -257,6 +268,35 @@ where
             ListTactic::Mixed => DefinitiveListTactic::Mixed,
             _ => DefinitiveListTactic::Vertical,
         }
+    }
+}
+
+/// Decides which items in a vertical list are followed by a blank line, according to `spacing`.
+/// `has_attrs` tells whether the item at an index has attributes, including doc comments.
+///
+/// The result is only honoured by [`write_list`] when the list preserves newlines.
+pub(crate) fn apply_item_spacing(
+    items: &mut [ListItem],
+    spacing: ElementSpacing,
+    has_attrs: impl Fn(usize) -> bool,
+) {
+    let is_annotated =
+        |items: &[ListItem], i: usize| has_attrs(i) || items[i].has_own_line_pre_comment();
+    for i in 1..items.len() {
+        let new_lines = match spacing {
+            ElementSpacing::Preserve => return,
+            ElementSpacing::Never => false,
+            ElementSpacing::Always => true,
+            ElementSpacing::AroundAnnotated => {
+                items[i - 1].new_lines || is_annotated(items, i - 1) || is_annotated(items, i)
+            }
+            ElementSpacing::AroundMultiline => {
+                items[i - 1].new_lines
+                    || items[i - 1].spans_multiple_lines()
+                    || items[i].spans_multiple_lines()
+            }
+        };
+        items[i - 1].new_lines = new_lines;
     }
 }
 

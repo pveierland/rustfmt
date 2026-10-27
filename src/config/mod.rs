@@ -155,6 +155,8 @@ create_config! {
         "Maximum number of blank lines which can be put between items";
     blank_lines_lower_bound: BlankLinesLowerBound, false,
         "Minimum number of blank lines which must be put between items";
+    blank_lines_between_match_arms: BlankLinesBetweenMatchArms, false,
+        "Controls blank lines between match arms";
     edition: EditionConfig, true, "The edition of the parser (RFC 2052)";
     style_edition: StyleEditionConfig, true, "The edition of the Style Guide (RFC 3338)";
     version: VersionConfig, false, "Version of formatting rules";
@@ -827,6 +829,7 @@ trailing_comma = "Vertical"
 match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
+blank_lines_between_match_arms = "Preserve"
 edition = "2015"
 style_edition = "2015"
 version = "One"
@@ -920,6 +923,7 @@ trailing_comma = "Vertical"
 match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
+blank_lines_between_match_arms = "Preserve"
 edition = "2015"
 style_edition = "2024"
 version = "Two"

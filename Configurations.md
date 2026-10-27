@@ -81,6 +81,107 @@ fn main() {
 }
 ```
 
+## `blank_lines_between_match_arms`
+
+Controls blank lines between match arms. An arm spans multiple lines if it, together with its
+attributes and any comments on their own lines above it, takes up more than one line.
+
+- **Default value**: `"Preserve"`
+- **Possible values**: `"Preserve"`, `"Never"`, `"Always"`, `"AroundAnnotated"`, `"AroundMultiline"`
+- **Stable**: No
+
+#### `"Preserve"` (default):
+
+Blank lines between arms are kept as they are written, up to
+[`blank_lines_upper_bound`](#blank_lines_upper_bound).
+
+```rust
+fn main() {
+    match value {
+        Some(0) => zero(),
+
+        Some(n) => {
+            let n = n * 2;
+            many(n)
+        }
+        None => none(),
+    }
+}
+```
+
+#### `"Never"`:
+
+```rust
+fn main() {
+    match value {
+        Some(0) => zero(),
+        Some(n) => {
+            let n = n * 2;
+            many(n)
+        }
+        None => none(),
+    }
+}
+```
+
+#### `"Always"`:
+
+```rust
+fn main() {
+    match value {
+        Some(0) => zero(),
+
+        Some(n) => {
+            let n = n * 2;
+            many(n)
+        }
+
+        None => none(),
+    }
+}
+```
+
+#### `"AroundAnnotated"`:
+
+A blank line is put before and after every arm which has attributes or a comment on its own line
+above it. Blank lines between other arms are kept as they are written.
+
+```rust
+fn main() {
+    match value {
+        Some(0) => zero(),
+        Some(n) => {
+            let n = n * 2;
+            many(n)
+        }
+
+        // Nothing to do.
+        None => none(),
+    }
+}
+```
+
+#### `"AroundMultiline"`:
+
+A blank line is put before and after every arm which spans multiple lines. Blank lines between
+single-line arms are kept as they are written.
+
+```rust
+fn main() {
+    match value {
+        Some(0) => zero(),
+        Some(1) => one(),
+
+        Some(n) => {
+            let n = n * 2;
+            many(n)
+        }
+
+        None => none(),
+    }
+}
+```
+
 ## `blank_lines_lower_bound`
 
 Minimum number of blank lines which must be put between items. If two items have fewer blank lines between
