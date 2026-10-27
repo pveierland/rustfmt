@@ -157,6 +157,8 @@ create_config! {
         "Minimum number of blank lines which must be put between items";
     blank_lines_between_match_arms: BlankLinesBetweenMatchArms, false,
         "Controls blank lines between match arms";
+    blank_lines_between_variants: BlankLinesBetweenVariants, false,
+        "Controls blank lines between enum variants";
     edition: EditionConfig, true, "The edition of the parser (RFC 2052)";
     style_edition: StyleEditionConfig, true, "The edition of the Style Guide (RFC 3338)";
     version: VersionConfig, false, "Version of formatting rules";
@@ -830,6 +832,7 @@ match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
 blank_lines_between_match_arms = "Preserve"
+blank_lines_between_variants = "Preserve"
 edition = "2015"
 style_edition = "2015"
 version = "One"
@@ -924,6 +927,7 @@ match_block_trailing_comma = false
 blank_lines_upper_bound = 1
 blank_lines_lower_bound = 0
 blank_lines_between_match_arms = "Preserve"
+blank_lines_between_variants = "Preserve"
 edition = "2015"
 style_edition = "2024"
 version = "Two"

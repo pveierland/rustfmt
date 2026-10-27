@@ -182,6 +182,101 @@ fn main() {
 }
 ```
 
+See also: [`blank_lines_between_variants`](#blank_lines_between_variants).
+
+## `blank_lines_between_variants`
+
+Controls blank lines between enum variants. A variant spans multiple lines if it, together with
+its attributes, doc comments and any comments on their own lines above it, takes up more than one
+line.
+
+- **Default value**: `"Preserve"`
+- **Possible values**: `"Preserve"`, `"Never"`, `"Always"`, `"AroundAnnotated"`, `"AroundMultiline"`
+- **Stable**: No
+
+#### `"Preserve"` (default):
+
+Blank lines between variants are kept as they are written.
+
+```rust
+enum Shape {
+    Point,
+
+    /// A circle.
+    Circle(f64),
+    Square(f64),
+}
+```
+
+#### `"Never"`:
+
+```rust
+enum Shape {
+    Point,
+    /// A circle.
+    Circle(f64),
+    Square(f64),
+}
+```
+
+#### `"Always"`:
+
+```rust
+enum Shape {
+    Point,
+
+    /// A circle.
+    Circle(f64),
+
+    Square(f64),
+}
+```
+
+#### `"AroundAnnotated"`:
+
+A blank line is put before and after every variant which has attributes, doc comments or a comment
+on its own line above it. Blank lines between other variants are kept as they are written.
+
+```rust
+enum Shape {
+    Point,
+    Line,
+
+    /// A circle.
+    Circle(f64),
+
+    Rectangle {
+        width: f64,
+        height: f64,
+    },
+    Square(f64),
+}
+```
+
+#### `"AroundMultiline"`:
+
+A blank line is put before and after every variant which spans multiple lines. Blank lines between
+single-line variants are kept as they are written.
+
+```rust
+enum Shape {
+    Point,
+    Line,
+
+    /// A circle.
+    Circle(f64),
+
+    Rectangle {
+        width: f64,
+        height: f64,
+    },
+
+    Square(f64),
+}
+```
+
+See also: [`blank_lines_between_match_arms`](#blank_lines_between_match_arms).
+
 ## `blank_lines_lower_bound`
 
 Minimum number of blank lines which must be put between items. If two items have fewer blank lines between

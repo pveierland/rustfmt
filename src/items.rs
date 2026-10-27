@@ -21,7 +21,9 @@ use crate::expr::{
     rewrite_assign_rhs_with, rewrite_assign_rhs_with_comments, rewrite_else_kw_with_comments,
     rewrite_let_else_block,
 };
-use crate::lists::{ListFormatting, Separator, definitive_tactic, itemize_list, write_list};
+use crate::lists::{
+    ListFormatting, Separator, apply_item_spacing, definitive_tactic, itemize_list, write_list,
+};
 use crate::macros::{MacroPosition, rewrite_macro};
 use crate::overflow;
 use crate::rewrite::{
@@ -660,6 +662,11 @@ impl<'a> FmtVisitor<'a> {
         if has_multiline_variant && has_single_line_variant {
             items = itemize_list_with(0);
         }
+        apply_item_spacing(
+            &mut items,
+            self.config.blank_lines_between_variants(),
+            |i| !enum_def.variants[i].attrs.is_empty(),
+        );
 
         let shape = self.shape().sub_width_opt(2)?;
         let fmt = ListFormatting::new(shape, self.config)

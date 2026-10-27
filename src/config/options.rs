@@ -729,6 +729,7 @@ config_option_with_style_edition_default!(
     BlankLinesUpperBound, usize, _ => 1;
     BlankLinesLowerBound, usize, _ => 0;
     BlankLinesBetweenMatchArms, ElementSpacing, _ => ElementSpacing::Preserve;
+    BlankLinesBetweenVariants, ElementSpacing, _ => ElementSpacing::Preserve;
     EditionConfig, Edition, _ => Edition::Edition2015;
     StyleEditionConfig, StyleEdition,
         Edition2024 => StyleEdition::Edition2024, _ => StyleEdition::Edition2015;
